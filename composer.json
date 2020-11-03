@@ -1,0 +1,20 @@
+{
+    "name": "delboy1978uk/bone-user-api",
+    "description": "BoneUserApi package for Bone Framework",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Derek Stephen McLean",
+            "email": "delboy1978uk@gmail.com"
+        }
+    ],
+    "require": [],
+    "require-dev": {
+        "roave/security-advisories": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bone\\BoneUserApi\\": "src/"
+        }
+    }
+}
