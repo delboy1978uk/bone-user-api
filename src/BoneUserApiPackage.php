@@ -14,7 +14,7 @@ use Bone\OAuth2\Http\Middleware\ResourceServerMiddleware;
 use Bone\OAuth2\Http\Middleware\ScopeCheck;
 use Bone\Router\Router;
 use Bone\Router\RouterConfigInterface;
-use Bone\User\Controller\ApiController;
+use Bone\BoneUserApi\Controller\ApiController;
 use Del\Service\UserService;
 use Laminas\Diactoros\ResponseFactory;
 use League\Route\RouteGroup;
