@@ -15,6 +15,7 @@ use Bone\OAuth2\Http\Middleware\ScopeCheck;
 use Bone\Router\Router;
 use Bone\Router\RouterConfigInterface;
 use Bone\BoneUserApi\Controller\ApiController;
+use Bone\User\Http\Middleware\SessionAuth;
 use Del\Service\UserService;
 use Laminas\Diactoros\ResponseFactory;
 use League\Route\RouteGroup;
@@ -27,6 +28,8 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
      */
     public function addToContainer(Container $c)
     {
+
+
         $c[ApiController::class] = $c->factory(function (Container $c) {
             /** @var UserService $userService */
             $userService = $c->get(UserService::class);
@@ -58,4 +61,6 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
         return $router;
     }
+
+
 }

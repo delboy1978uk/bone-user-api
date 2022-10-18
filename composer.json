@@ -8,9 +8,7 @@
             "email": "delboy1978uk@gmail.com"
         }
     ],
-    "require": {
-        "delboy1978uk/bone-oauth2": "^1.4"
-    },
+    "require": [],
     "require-dev": {
         "roave/security-advisories": "dev-master"
     },
@@ -18,8 +16,5 @@
         "psr-4": {
             "Bone\\BoneUserApi\\": "src/"
         }
-    },
-    "suggest": {
-        "delboy1978uk/bone-open-api": "Open API documentation"
     }
 }
