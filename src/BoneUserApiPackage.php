@@ -28,14 +28,13 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
      */
     public function addToContainer(Container $c)
     {
-
-
         $c[ApiController::class] = $c->factory(function (Container $c) {
             /** @var UserService $userService */
             $userService = $c->get(UserService::class);
             $mailService = $c->get(MailService::class);
+            $appSettings = $c->get('bone-native');
 
-            return Init::controller(new ApiController($userService, $mailService), $c);
+            return Init::controller(new ApiController($userService, $mailService, $appSettings), $c);
         });
     }
 
@@ -51,7 +50,7 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
         $router->group('/api', function (RouteGroup $route) use ($c) {
             $route->map('GET', '/user', [ApiController::class, 'indexAction']);
-            $route->map('POST', '/user/register', [ApiController::class, 'registerAction'])->middlewares([new JsonParse(), $c->get(ResourceServerMiddleware::class)]);
+            $route->map('POST', '/user/register', [ApiController::class, 'registerAction'])->middleware(new JsonParse());
             $route->map('GET', '/user/profile', [ApiController::class, 'profileAction'])
                 ->middlewares([$c->get(ResourceServerMiddleware::class), new ScopeCheck(['basic']), new HalEntity()]);
             $route->map('PUT', '/user/profile', [ApiController::class, 'editProfileAction'])

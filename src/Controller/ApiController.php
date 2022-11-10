@@ -18,20 +18,19 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class ApiController extends Controller
 {
-    /** @var UserService $userService */
-    private $userService;
-
-    /** @var MailService $mailService */
-    private $mailService;
+    private UserService $userService;
+    private MailService $mailService;
+    private array $nativeAppSettings;
 
     /**
      * BoneUserController constructor.
      * @param UserService $userService
      */
-    public function __construct(UserService $userService, MailService $mailService)
+    public function __construct(UserService $userService, MailService $mailService, array $nativeAppSettings)
     {
         $this->userService = $userService;
         $this->mailService = $mailService;
+        $this->nativeAppSettings = $nativeAppSettings;
     }
 
     /**
@@ -108,7 +107,6 @@ class ApiController extends Controller
     public function registerAction(ServerRequestInterface $request, array $args): ResponseInterface
     {
         $form = new RegistrationForm('register', $this->getTranslator());
-        $message = null;
         $responseData = [];
 
         $formData = $request->getParsedBody();
@@ -133,21 +131,25 @@ class ApiController extends Controller
                     'siteUrl' => $env->getSiteURL(),
                     'logo' => $this->getSiteConfig()->getEmailLogo(),
                     'activationLink' => '/user/activate/' . $email . '/' . $token,
+                    'address' => $this->getSiteConfig()->getAddress(),
                 ]);
                 $this->mailService->sendEmail($mail);
 
                 $responseData['success'] = 'Email sent to ' . $email;
-                $code = 200;
+                $status = 200;
 
             } catch (UserException $e) {
                 $responseData['error'] = $e->getMessage();
                 $responseData['code'] = $e->getCode();
+                $status = $e->getCode();
             }
         } else {
             $responseData['error'] = $form->getErrorMessages();
+            $responseData['code'] = 400;
+            $status = 400;
         }
 
-        return new JsonResponse($responseData);
+        return new JsonResponse($responseData, $status);
     }
 
     /**
