@@ -3,6 +3,7 @@
 namespace Bone\BoneUserApi\Controller;
 
 use Bone\Controller\Controller;
+use Bone\Http\Response\HtmlResponse;
 use Bone\I18n\Form;
 use Bone\Mail\EmailMessage;
 use Bone\Mail\Service\MailService;
@@ -10,11 +11,14 @@ use Bone\User\Form\PersonForm;
 use Bone\User\Form\RegistrationForm;
 use DateTime;
 use Del\Entity\User;
+use Del\Exception\EmailLinkException;
 use Del\Exception\UserException;
 use Del\Factory\CountryFactory;
 use Del\Form\Field\Text\EmailAddress;
 use Del\Service\UserService;
+use Del\Value\User\State;
 use Laminas\Diactoros\Response\JsonResponse;
+use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -81,17 +85,7 @@ class ApiController extends Controller
      *                     type="string",
      *                     example="fake@email.com",
      *                     description="The new user's email"
-     *                 ),@OA\Property(
-     *                     property="password",
-     *                     type="string",
-     *                     example="xxxxxxxxxx",
-     *                     description="The users chosen password"
-     *                 ),@OA\Property(
-     *                     property="confirm",
-     *                     type="string",
-     *                     example="xxxxxxxxxx",
-     *                     description="Password confirmation"
-     *                 ),
+     *                 )
      *             )
      *         )
      *     ),
@@ -153,6 +147,64 @@ class ApiController extends Controller
         }
 
         return new JsonResponse($responseData, $status);
+    }
+
+    /**
+     * Activate a new user.
+     * @OA\Post(
+     *     path="/api/user/activate",
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 required={"email", "token"},
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="string",
+     *                     example="fake@email.com",
+     *                     description="The account to activate"
+     *                 ),@OA\Property(
+     *                     property="token",
+     *                     type="string",
+     *                     example="xxxxxxxxxx",
+     *                     description="The security token"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response="200", description="Email sent"),
+     *     tags={"user"},
+     *     security={
+     *         {"oauth2": {"register"}}
+     *     }
+     * )
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     * @throws \Doctrine\ORM\ORMException
+     * @throws \Doctrine\ORM\OptimisticLockException
+     */
+    public function activateAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $email = $request->getAttribute('email');
+        $token = $request->getAttribute('token');
+        $userService = $this->userService;
+
+        try {
+            $link = $userService->findEmailLink($email, $token);
+            $user = $link->getUser();
+            $user->setState(new State(State::STATE_ACTIVATED));
+            $user->setLastLogin(new DateTime());
+            $userService->saveUser($user);
+            $userService->deleteEmailLink($link);
+            /** @todo create an access token */
+            $body = ['access_token' => 'xxx'];
+            $status = 200;
+        } catch (EmailLinkException $e) {
+            $body = ['error' => $e->getMessage()];
+            $status = 400;
+        }
+
+        return new JsonResponse($body, $status);
     }
 
     /**
