@@ -3,6 +3,7 @@
 namespace Bone\BoneUserApi\Controller;
 
 use Bone\Controller\Controller;
+use Bone\I18n\Form;
 use Bone\Mail\EmailMessage;
 use Bone\Mail\Service\MailService;
 use Bone\User\Form\PersonForm;
@@ -11,6 +12,7 @@ use DateTime;
 use Del\Entity\User;
 use Del\Exception\UserException;
 use Del\Factory\CountryFactory;
+use Del\Form\Field\Text\EmailAddress;
 use Del\Service\UserService;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -106,16 +108,17 @@ class ApiController extends Controller
      */
     public function registerAction(ServerRequestInterface $request, array $args): ResponseInterface
     {
-        $form = new RegistrationForm('register', $this->getTranslator());
+        $form = new Form('register', $this->getTranslator());
+        $email = new EmailAddress('email');
+        $form->addField($email);
         $responseData = [];
-
         $formData = $request->getParsedBody();
         $form->populate($formData);
 
         if ($form->isValid()) {
             $data = $form->getValues();
             try {
-                $user = $this->userService->registerUser($data);
+                $user = $this->userService->registerNewUserWithoutPassword($data['email']);
                 $link = $this->userService->generateEmailLink($user);
                 $mail = $this->mailService;
 
@@ -126,11 +129,11 @@ class ApiController extends Controller
                 $mail = new EmailMessage();
                 $mail->setTo($user->getEmail());
                 $mail->setSubject($this->getTranslator()->translate('email.user.register.thankswith', 'user') . ' ' . $this->mailService->getSiteConfig()->getTitle());
-                $mail->setTemplate('email.user::user_registration/user_registration');
+                $mail->setTemplate('email.user::user_registration/api_user_registration');
                 $mail->setViewData([
                     'siteUrl' => $env->getSiteURL(),
                     'logo' => $this->getSiteConfig()->getEmailLogo(),
-                    'activationLink' => '/user/activate/' . $email . '/' . $token,
+                    'activationLink' => $this->nativeAppSettings['deepLink'] . 'user/activate?email=' . $email . '&token=' . $token,
                     'address' => $this->getSiteConfig()->getAddress(),
                 ]);
                 $this->mailService->sendEmail($mail);
