@@ -260,7 +260,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $url = $this->getSiteConfig()->getBaseUrl() . '/oauth2/authorize';
         $query = [
             'client_id' => $clientId,
-            'code_challenge' => $this->generatePkceCodeChallenge($this->verifier),
+            'code_challenge' => $this->generatePkceCodeChallenge($this->nativeAppSettings['verifier']),
             'code_challenge_method' => 'S256',
             'response_type' => 'code',
             'redirect_uri' => $this->nativeAppSettings['deepLink'] . 'oauth2/callback',
