@@ -43,7 +43,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     private Key $encryptionKey;
     private MailService $mailService;
     private UserService $userService;
-    private string $verifier = 'RaYFJonXO4pxNh7w5ygj90D8ruMPvwigU.BPMNp.O9~-oym396zbL0Lf9wGPPJSWkg1Lrz.4rHgbn_XwoyapfcTfXIONjhlOcA78y11PQIt1ueFlCbJ6DZ892G3HpLkt';
 
     /**
      * BoneUserController constructor.
@@ -281,7 +280,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $body = [
             'grant_type' => 'authorization_code',
             'client_id' => $clientId,
-            'code_verifier' => $this->verifier,
+            'code_verifier' => $this->nativeAppSettings['verifier'],
             'redirect_uri' => $this->nativeAppSettings['deepLink'] . 'oauth2/callback',
             'code' => $code
         ];
