@@ -52,6 +52,7 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
         $router->group('/api', function (RouteGroup $route) use ($c) {
             $route->map('GET', '/user', [ApiController::class, 'indexAction']);
             $route->map('POST', '/user/register', [ApiController::class, 'registerAction'])->middleware(new JsonParse());
+            $route->map('POST', '/user/resend-activation-email', [ApiController::class, 'resendActivationEmailAction'])->middleware(new JsonParse());
             $route->map('POST', '/user/activate', [ApiController::class, 'activateAction'])->middleware(new JsonParse());
             $route->map('GET', '/user/profile', [ApiController::class, 'profileAction'])
                 ->middlewares([$c->get(ResourceServerMiddleware::class), new ScopeCheck(['basic']), new HalEntity()]);

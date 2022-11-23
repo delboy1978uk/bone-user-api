@@ -70,7 +70,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
      * @param array $args
      * @return ResponseInterface
      */
-    public function profileAction(ServerRequestInterface $request, array $args): ResponseInterface
+    public function profileAction(ServerRequestInterface $request): ResponseInterface
     {
         /** @var User $user */
         $user = $request->getAttribute('user');
@@ -117,7 +117,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
      * @return ResponseInterface
      * @throws Exception
      */
-    public function registerAction(ServerRequestInterface $request, array $args): ResponseInterface
+    public function registerAction(ServerRequestInterface $request): ResponseInterface
     {
         $form = new Form('register', $this->getTranslator());
         $email = new EmailAddress('email');
@@ -295,7 +295,71 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     private function generatePkceCodeChallenge(string $verifier)
     {
         $hash = hash('sha256', $verifier, true);
+
         return rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+    }
+
+    /**
+     * Resend an activation email.
+     * @OA\Post(
+     *     path="/api/user/resend-activation-email",
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 required={"email", "token"},
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="string",
+     *                     example="fake@email.com",
+     *                     description="The account to resend the email to"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response="200", description="{ok: true}"),
+     *     tags={"user"},
+     * )
+     * @param ServerRequestInterface $request
+     * @param array $args
+     * @return ResponseInterface
+     */
+    public function resendActivationEmailAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $email = $request->getParsedBody()['email'];
+        $user = $this->userService->findUserByEmail($email);
+        $translator = $this->getTranslator();
+
+        if (!$user) {
+            throw new Exception(UserException::USER_NOT_FOUND, 404);
+        }
+
+        if ($user->getState()->getValue() == State::STATE_ACTIVATED) {
+            throw new Exception(UserException::USER_ACTIVATED, 400);
+        }
+
+        $link = $this->userService->generateEmailLink($user);
+        $mail = $this->mailService;
+
+        $env = $mail->getSiteConfig()->getEnvironment();
+        $email = $user->getEmail();
+        $token = $link->getToken();
+
+        $mail = new EmailMessage();
+        $mail->setTo($user->getEmail());
+        $mail->setSubject($translator->translate('email.user.register.thankswith', 'user') . ' ' . $this->mailService->getSiteConfig()->getTitle());
+        $mail->setTemplate('email.user::user_registration/api_user_registration');
+        $mail->setViewData([
+            'siteUrl' => $env->getSiteURL(),
+            'logo' => $this->getSiteConfig()->getEmailLogo(),
+            'address' => $this->getSiteConfig()->getAddress(),
+            'activationLink' => $this->nativeAppSettings['deepLink'] . 'user/activate?email=' . $email . '&token=' . $token,
+        ]);
+        $this->mailService->sendEmail($mail);
+
+        return new JsonResponse([
+            'ok' => true
+        ]);
     }
 
     /**
@@ -361,7 +425,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
      * @return ResponseInterface
      * @throws Exception
      */
-    public function editProfileAction(ServerRequestInterface $request, array $args): ResponseInterface
+    public function editProfileAction(ServerRequestInterface $request): ResponseInterface
     {
         $data = $request->getParsedBody();
         $form = new PersonForm('profile', $this->getTranslator());
