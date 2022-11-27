@@ -167,6 +167,52 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     }
 
     /**
+     * Validates an email token.
+     * @OA\Post(
+     *     path="/api/user/validate-email-token",
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 required={"email", "token"},
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="string",
+     *                     example="fake@email.com",
+     *                     description="The email of the user."
+     *                 ), @OA\Property(
+     *                     property="token",
+     *                     type="string",
+     *                     example="xxxxxxxxxx",
+     *                     description="The security token from the email."
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response="200", description="{ok: true}}"),
+     *     tags={"user"}
+     * )
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     * @throws \Doctrine\ORM\ORMException
+     * @throws \Doctrine\ORM\OptimisticLockException
+     */
+    public function validateEmailToken(ServerRequestInterface $request): ResponseInterface
+    {
+        $body = $request->getParsedBody();
+        $email = $body['email'];
+        $token = $body['token'];
+
+        try {
+            $this->userService->findEmailLink($email, $token);
+
+            return new JsonResponse(['ok' => true]);
+        } catch (EmailLinkException $e) {
+            return new JsonResponse(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Activate a new user.
      * @OA\Post(
      *     path="/api/user/activate",
