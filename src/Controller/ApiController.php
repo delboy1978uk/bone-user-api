@@ -485,6 +485,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
             $person = $user->getPerson();
             $personService = $this->userService->getPersonSvc();
             $person = $personService->populateFromArray($person, $data);
+            $this->userService->getPersonSvc()->savePerson($person);
             $person = $personService->toArray($person);
             $person['country'] = $person['country']->toArray();
 
