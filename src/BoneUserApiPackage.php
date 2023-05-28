@@ -16,6 +16,7 @@ use Bone\OAuth2\Http\Middleware\ScopeCheck;
 use Bone\Router\Router;
 use Bone\Router\RouterConfigInterface;
 use Bone\BoneUserApi\Controller\ApiController;
+use Bone\User\Http\Middleware\SessionAuth;
 use Del\Service\UserService;
 use Laminas\Diactoros\ResponseFactory;
 use League\Route\RouteGroup;
@@ -48,17 +49,23 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
         $factory = new ResponseFactory();
         $strategy = new JsonStrategy($factory);
         $strategy->setContainer($c);
+        $tokenAuth = $c->get(ResourceServerMiddleware::class);
+        $basicScopeCheck = new ScopeCheck(['basic']);
 
-        $router->group('/api', function (RouteGroup $route) use ($c) {
+        $router->group('/api', function (RouteGroup $route) use ($c, $tokenAuth, $basicScopeCheck) {
             $route->map('GET', '/user', [ApiController::class, 'indexAction']);
             $route->map('POST', '/user/register', [ApiController::class, 'registerAction'])->middleware(new JsonParse());
             $route->map('POST', '/user/resend-activation-email', [ApiController::class, 'resendActivationEmailAction'])->middleware(new JsonParse());
             $route->map('POST', '/user/validate-email-token', [ApiController::class, 'validateEmailToken'])->middleware(new JsonParse());
             $route->map('POST', '/user/activate', [ApiController::class, 'activateAction'])->middleware(new JsonParse());
             $route->map('GET', '/user/profile', [ApiController::class, 'profileAction'])
-                ->middlewares([$c->get(ResourceServerMiddleware::class), new ScopeCheck(['basic']), new HalEntity()]);
+                ->middlewares([$tokenAuth, $basicScopeCheck, new HalEntity()]);
             $route->map('PUT', '/user/profile', [ApiController::class, 'editProfileAction'])
-                ->middlewares([$c->get(ResourceServerMiddleware::class), new ScopeCheck(['basic']), new JsonParse()]);
+                ->middlewares([$tokenAuth, new ScopeCheck(['basic']), new JsonParse()]);
+            $route->map('GET', '/user/image', [ApiController::class, 'imageAction'])
+                ->middlewares([$tokenAuth]);
+            $route->map('POST', '/user/image', [ApiController::class, 'imageAction'])
+                ->middlewares([$tokenAuth]);
         })
             ->setStrategy($strategy);
 

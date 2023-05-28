@@ -24,8 +24,10 @@ use Del\Service\UserService;
 use Del\Value\User\State;
 use Exception;
 use GuzzleHttp\Psr7\ServerRequest;
+use Laminas\Diactoros\Response;
 use Laminas\Diactoros\Response\JsonResponse;
 use Laminas\Diactoros\ServerRequestFactory;
+use Laminas\Diactoros\Stream;
 use Laminas\Diactoros\Uri;
 use League\OAuth2\Server\CryptKey;
 use Psr\Http\Message\ResponseInterface;
@@ -43,6 +45,8 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     private Key $encryptionKey;
     private MailService $mailService;
     private UserService $userService;
+    private string $baseUrl;
+    private string $uploadsDirectory;
 
     /**
      * BoneUserController constructor.
@@ -54,6 +58,8 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $this->mailService = $mailService;
         $this->nativeAppSettings = $nativeAppSettings;
         $this->authServerController = $authServerController;
+        $this->baseUrl = $authServerController->getSiteConfig()->getBaseUrl();
+        $this->uploadsDirectory = $authServerController->getSiteConfig()->getAttribute('uploads_dir');
     }
 
     /**
@@ -77,14 +83,88 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $person = $user->getPerson();
         $country = $person->getCountry();
         $user = $this->userService->toArray($user);
-        $dob = $person->getDob() ? $person->getDob()->format('Y-m-d H:i:s') : null;
+        $dob = $person->getDob() ? $person->getDob()->format('Y-m-d') : null;
         $person = $this->userService->getPersonSvc()->toArray($person);
         $person['dob'] = $dob;
         $person['country'] = $country ? $country->toArray() : null;
+        $person['image'] = $person['image'] ? $this->baseUrl . '/api/user/image' : null;
         $user['person'] = $person;
         unset($user['password']);
 
         return new JsonResponse($user);
+    }
+
+    /**
+     * User image.
+     * @OA\Get(
+     *     path="/api/user/image",
+     *     @OA\Response(response="200", description="User profile data"),
+     *     tags={"user"},
+     *     security={
+     *         {"oauth2": {"basic"}}
+     *     }
+     * )
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     * @throws Exception
+     */
+    public function imageAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $user = $request->getAttribute('user');
+        $file = $user->getPerson()->getImage();
+        $path = $this->getFilePath($file);
+        $mimeType = $this->getMimeType($path);
+        $contents = \file_get_contents($path);
+        $stream = new Stream('php://memory', 'r+');
+        $stream->write($contents);
+        $response = new Response();
+        $response = $response->withBody($stream);
+        $response = $response->withHeader('Content-Type', $mimeType);
+
+        return $response;
+    }
+
+    /**
+     * Upload user image.
+     * @OA\Post(
+     *     path="/api/user/image",
+     *     @OA\Response(response="200", description="User profile data"),
+     *     tags={"user"},
+     *     security={
+     *         {"oauth2": {"basic"}}
+     *     }
+     * )
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    public function uploadImage(ServerRequestInterface $request): ResponseInterface
+    {
+        return new JsonResponse(['handle upload' => 'next']);
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     */
+    private function getMimeType(string $path): string
+    {
+        $finfo = \finfo_open(FILEINFO_MIME); // return mime type
+        $mimeType = \finfo_file($finfo, $path);
+        \finfo_close($finfo);
+
+        return $mimeType;
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     * @throws Exception
+     */
+    private function getFilePath(string $path): string
+    {
+        $path = $this->uploadsDirectory . $path;
+
+        return $path;
     }
 
 
@@ -483,11 +563,13 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
             $data['country'] = CountryFactory::generate($data['country']);
             $user = $request->getAttribute('user');
             $person = $user->getPerson();
+            $data['image'] = $person->getImage();
             $personService = $this->userService->getPersonSvc();
             $person = $personService->populateFromArray($person, $data);
             $this->userService->getPersonSvc()->savePerson($person);
             $person = $personService->toArray($person);
             $person['country'] = $person['country']->toArray();
+            $person['dob'] = $person['dob']->format('Y-m-d');
 
             return new JsonResponse($person);
         }
