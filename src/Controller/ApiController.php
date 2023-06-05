@@ -19,7 +19,9 @@ use Del\Entity\User;
 use Del\Exception\EmailLinkException;
 use Del\Exception\UserException;
 use Del\Factory\CountryFactory;
+use Del\Form\Field\FileUpload;
 use Del\Form\Field\Text\EmailAddress;
+use Del\Image;
 use Del\Service\UserService;
 use Del\Value\User\State;
 use Exception;
@@ -47,6 +49,8 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     private UserService $userService;
     private string $baseUrl;
     private string $uploadsDirectory;
+    private string $tempDirectory;
+    private string $imgDirectory;
 
     /**
      * BoneUserController constructor.
@@ -60,6 +64,8 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $this->authServerController = $authServerController;
         $this->baseUrl = $authServerController->getSiteConfig()->getBaseUrl();
         $this->uploadsDirectory = $authServerController->getSiteConfig()->getAttribute('uploads_dir');
+        $this->tempDirectory = $authServerController->getSiteConfig()->getAttribute('temp_dir');
+        $this->imgDirectory = $authServerController->getSiteConfig()->getAttribute('image_dir');
     }
 
     /**
@@ -139,7 +145,84 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
      */
     public function uploadImage(ServerRequestInterface $request): ResponseInterface
     {
-        return new JsonResponse(['handle upload' => 'next']);
+        $data = $request->getParsedBody();
+        $form = new \Del\Form\Form('upload');
+        $file = new FileUpload('avatar');
+        $file->setUploadDirectory($this->tempDirectory);
+        $file->setRequired(true);
+        $form->addField($file);
+        $form->populate($data);
+
+        if ($form->isValid()) {
+
+            try {
+                $data = $form->getValues();
+                $file = $data['avatar'];
+                $sourceFileName = $this->tempDirectory . $file;
+                $newFileName = $this->imgDirectory . $this->getFilename($file);
+                $destinationFileName = $this->uploadsDirectory . $newFileName;
+                $image = new Image($sourceFileName);
+
+                if ($image->getHeight() > $image->getWidth()) { //portrait
+
+                    $image->resizeToWidth(100);
+                    $image->crop(100, 100);
+
+                } elseif ($image->getHeight() < $image->getWidth()) { //landscape
+
+                    $image->resizeToHeight(100);
+                    $image->crop(100, 100);
+
+                } else { //square
+
+                    $image->resize(100, 100);
+
+                }
+                $image->save($destinationFileName, 0775);
+                unlink($sourceFileName);
+
+                /** @var User $user */
+                $user = $request->getAttribute('user');
+                $person = $user->getPerson();
+                $person->setImage($newFileName);
+                $this->userService->getPersonSvc()->savePerson($person);
+
+                return new JsonResponse([
+                    'result' => 'success',
+                    'message' => 'Avatar now set to ' . $person->getImage(),
+                    'avatar' => $person->getImage(),
+                ]);
+            } catch (Exception $e) {
+                return new JsonResponse([
+                    'result' => 'danger',
+                    'message' => $e->getMessage(),
+                ], 200);
+            }
+        }
+
+        return new JsonResponse([
+            'result' => 'danger',
+            'message' => 'There was a problem with your upload.',
+        ], 400);
+    }
+
+    private function getFilename(string $fileNameAsUploaded)
+    {
+        $filenameParts = \explode('.', $fileNameAsUploaded);
+        $encoded = [];
+
+        foreach ($filenameParts as $filenamePart) {
+            $encoded[] = \urlencode($filenamePart);
+        }
+
+
+        $unique = \dechex(time());
+        $ext = \array_pop($encoded);
+        $encoded[] = $unique;
+        $filenameOnDisk = \implode('_', $encoded);
+        $filenameOnDisk .= '.' . $ext;
+
+        return $filenameOnDisk;
     }
 
     /**

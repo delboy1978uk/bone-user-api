@@ -64,7 +64,7 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
                 ->middlewares([$tokenAuth, new ScopeCheck(['basic']), new JsonParse()]);
             $route->map('GET', '/user/image', [ApiController::class, 'imageAction'])
                 ->middlewares([$tokenAuth]);
-            $route->map('POST', '/user/image', [ApiController::class, 'imageAction'])
+            $route->map('POST', '/user/image', [ApiController::class, 'uploadImage'])
                 ->middlewares([$tokenAuth]);
         })
             ->setStrategy($strategy);
