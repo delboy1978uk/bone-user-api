@@ -94,6 +94,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $person['dob'] = $dob;
         $person['country'] = $country ? $country->toArray() : null;
         $person['image'] = $person['image'] ? $this->baseUrl . '/api/user/image' : null;
+        $person['backgroundImage'] = $person['backgroundImage'] ? $this->baseUrl . '/api/user/background-image' : null;
         $user['person'] = $person;
         unset($user['password']);
 
@@ -155,7 +156,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
      * @return ResponseInterface
      * @throws Exception
      */
-    public function backgroundImageAction(ServerRequestInterface $request): ResponseInterface
+    public function backgroundImage(ServerRequestInterface $request): ResponseInterface
     {
         $user = $request->getAttribute('user');
         $file = $user->getPerson()->getBackgroundImage();
