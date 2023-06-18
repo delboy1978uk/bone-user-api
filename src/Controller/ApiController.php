@@ -104,7 +104,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
      * User image.
      * @OA\Get(
      *     path="/api/user/image",
-     *     @OA\Response(response="200", description="User profile data"),
+     *     @OA\Response(response="200", description="User profile image"),
      *     tags={"user"},
      *     security={
      *         {"oauth2": {"basic"}}
@@ -118,23 +118,56 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     {
         $user = $request->getAttribute('user');
         $file = $user->getPerson()->getImage();
-        $path = $this->getFilePath($file);
-        $mimeType = $this->getMimeType($path);
-        $contents = \file_get_contents($path);
-        $stream = new Stream('php://memory', 'r+');
-        $stream->write($contents);
-        $response = new Response();
-        $response = $response->withBody($stream);
-        $response = $response->withHeader('Content-Type', $mimeType);
 
-        return $response;
+        return $this->serveImage($file);
+    }
+
+    private function serveImage(string $file): ResponseInterface
+    {
+        $path = $this->getFilePath($file);
+
+        if (\file_exists($path)) {
+            $mimeType = $this->getMimeType($path);
+            $contents = \file_get_contents($path);
+            $stream = new Stream('php://memory', 'r+');
+            $stream->write($contents);
+            $response = new Response();
+            $response = $response->withBody($stream);
+            $response = $response->withHeader('Content-Type', $mimeType);
+
+            return $response;
+        }
+
+        return new JsonResponse(['error' => 'not found'],  404);
+    }
+
+    /**
+     * User image.
+     * @OA\Get(
+     *     path="/api/user/background-image",
+     *     @OA\Response(response="200", description="User profilebackground image"),
+     *     tags={"user"},
+     *     security={
+     *         {"oauth2": {"basic"}}
+     *     }
+     * )
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     * @throws Exception
+     */
+    public function backgroundImageAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $user = $request->getAttribute('user');
+        $file = $user->getPerson()->getBackgroundImage();
+
+        return $this->serveImage($file);
     }
 
     /**
      * Upload user image.
      * @OA\Post(
      *     path="/api/user/image",
-     *     @OA\Response(response="200", description="User profile data"),
+     *     @OA\Response(response="200", description="User profile image upload result"),
      *     tags={"user"},
      *     security={
      *         {"oauth2": {"basic"}}
@@ -191,6 +224,76 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
                     'result' => 'success',
                     'message' => 'Avatar now set to ' . $person->getImage(),
                     'avatar' => $person->getImage(),
+                ]);
+            } catch (Exception $e) {
+                return new JsonResponse([
+                    'result' => 'danger',
+                    'message' => $e->getMessage(),
+                ], 200);
+            }
+        }
+
+        return new JsonResponse([
+            'result' => 'danger',
+            'message' => 'There was a problem with your upload.',
+        ], 400);
+    }
+
+    /**
+     * Upload user profile background image.
+     * @OA\Post(
+     *     path="/api/user/background-image",
+     *     @OA\Response(response="200", description="User profile background upoload result"),
+     *     tags={"user"},
+     *     security={
+     *         {"oauth2": {"basic"}}
+     *     }
+     * )
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    public function uploadBackgroundImage(ServerRequestInterface $request): ResponseInterface
+    {
+        $data = $request->getParsedBody();
+        $form = new \Del\Form\Form('upload');
+        $file = new FileUpload('background');
+        $file->setUploadDirectory($this->tempDirectory);
+        $file->setRequired(true);
+        $form->addField($file);
+        $form->populate($data);
+
+        if ($form->isValid()) {
+
+            try {
+                $data = $form->getValues();
+                $file = $data['background'];
+                $sourceFileName = $this->tempDirectory . $file;
+                $newFileName = $this->imgDirectory . $this->getFilename($file);
+                $destinationFileName = $this->uploadsDirectory . $newFileName;
+                $image = new Image($sourceFileName);
+
+                if ($image->getHeight() > $image->getWidth()) { //portrait
+                    $image->resizeToWidth(1024);
+                } elseif ($image->getHeight() < $image->getWidth()) { //landscape
+                    $image->resizeToHeight(768);
+                } else { //square
+                    $image->resizeToWidth(1024);
+                }
+
+                $image->crop(1024, 768);
+                $image->save($destinationFileName, 0775);
+                unlink($sourceFileName);
+
+                /** @var User $user */
+                $user = $request->getAttribute('user');
+                $person = $user->getPerson();
+                $person->setBackgroundImage($newFileName);
+                $this->userService->getPersonSvc()->savePerson($person);
+
+                return new JsonResponse([
+                    'result' => 'success',
+                    'message' => 'Profile background successfully uploaded ',
+                    'backgroundImage' => $person->getBackgroundImage(),
                 ]);
             } catch (Exception $e) {
                 return new JsonResponse([
