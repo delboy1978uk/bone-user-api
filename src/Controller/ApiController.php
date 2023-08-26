@@ -3,7 +3,7 @@
 namespace Bone\BoneUserApi\Controller;
 
 use Bone\BoneDoctrine\EntityManagerAwareInterface;
-use Bone\BoneDoctrine\HasEntityManagerTrait;
+use Bone\BoneDoctrine\Traits\HasEntityManagerTrait;
 use Bone\Controller\Controller;
 use Bone\I18n\Form;
 use Bone\Mail\EmailMessage;
