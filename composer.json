@@ -8,7 +8,10 @@
             "email": "delboy1978uk@gmail.com"
         }
     ],
-    "require": [],
+    "require": {
+        "php": "^8.2",
+        "delboy1978uk/bone-oauth2": "^1.6"
+    },
     "require-dev": {
         "roave/security-advisories": "dev-master"
     },
