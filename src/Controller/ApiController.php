@@ -551,7 +551,9 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
             $authRequest = $this->getAuthRequest($clientId);
             $response = $this->authServerController->authorizeAction($authRequest, []);
             $redirectUri = $response->getHeaderLine('Location');
-            $url = \parse_url($redirectUri);\parse_str($url['query'], $params);
+            $url = \parse_url($redirectUri);
+            $query = $url['query'];
+            \parse_str($query, $params);
             $code = $params['code'];
             $tokenRequest = $this->getTokenRequest($clientId, $code);
             $response = $this->authServerController->accessTokenAction($tokenRequest, []);
@@ -583,6 +585,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
 
         $request = new ServerRequest('POST', $url);
         $request = $request->withQueryParams($query);
+        $request = $request->withHeader('X_BONE_USER_ACTIVATE', '1');
 
         return $request;
     }
