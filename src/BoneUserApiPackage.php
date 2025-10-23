@@ -6,6 +6,7 @@ namespace Bone\BoneUserApi;
 
 use Barnacle\Container;
 use Barnacle\RegistrationInterface;
+use Bone\Contracts\Container\ApiDocProviderInterface;
 use Bone\Controller\Init;
 use Bone\Http\Middleware\HalEntity;
 use Bone\Http\Middleware\JsonParse;
@@ -22,12 +23,9 @@ use Laminas\Diactoros\ResponseFactory;
 use League\Route\RouteGroup;
 use League\Route\Strategy\JsonStrategy;
 
-class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
+class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface, ApiDocProviderInterface
 {
-    /**
-     * @param Container $c
-     */
-    public function addToContainer(Container $c)
+    public function addToContainer(Container $c): void
     {
         $c[ApiController::class] = $c->factory(function (Container $c) {
             /** @var UserService $userService */
@@ -40,10 +38,6 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
         });
     }
 
-    /**
-     * @param Container $c
-     * @param Router $router
-     */
     public function addRoutes(Container $c, Router $router)
     {
         $factory = new ResponseFactory();
@@ -76,5 +70,25 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
         return $router;
     }
 
+    public function provideModels(): array
+    {
+        return [
+            
+        ];
+    }
 
+    public function providePayloads(): array
+    {
+        return [];
+    }
+
+    public function provideResponses(): array
+    {
+        return [];
+    }
+
+    public function provideRoutes(): array
+    {
+        return [];
+    }
 }
