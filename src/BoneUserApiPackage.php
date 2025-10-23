@@ -73,7 +73,7 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
     public function provideModels(): array
     {
         return [
-            
+            '../../vendor/delboy1978uk/bone-user-api/data/models/person.tsp',
         ];
     }
 
@@ -89,6 +89,8 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
     public function provideRoutes(): array
     {
-        return [];
+        return [
+            '../vendor/delboy1978uk/bone-user-api/data/routes/person.tsp',
+        ];
     }
 }
