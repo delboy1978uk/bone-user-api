@@ -5,6 +5,13 @@ namespace Bone\BoneUserApi\Controller;
 use Bone\BoneDoctrine\EntityManagerAwareInterface;
 use Bone\BoneDoctrine\Traits\HasEntityManagerTrait;
 use Bone\Controller\Controller;
+use Bone\Http\Response\Json\CreatedResponse;
+use Bone\Http\Response\Json\Error\BadRequestResponse;
+use Bone\Http\Response\Json\Error\ErrorResponse;
+use Bone\Http\Response\Json\Error\NotFoundResponse;
+use Bone\Http\Response\Json\Error\ServerErrorResponse;
+use Bone\Http\Response\Json\Error\ValidationErrorResponse;
+use Bone\Http\Response\Json\OkResponse;
 use Bone\I18n\Form;
 use Bone\Mail\EmailMessage;
 use Bone\Mail\Service\MailService;
@@ -52,10 +59,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
     private string $tempDirectory;
     private string $imgDirectory;
 
-    /**
-     * BoneUserController constructor.
-     * @param UserService $userService
-     */
     public function __construct(UserService $userService, MailService $mailService, AuthServerController $authServerController, array $nativeAppSettings)
     {
         $this->userService = $userService;
@@ -68,23 +71,8 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $this->imgDirectory = $authServerController->getSiteConfig()->getAttribute('image_dir');
     }
 
-    /**
-     * User profile data.
-     * @OA\Get(
-     *     path="/api/user/profile",
-     *     @OA\Response(response="200", description="User profile data"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"basic"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @param array $args
-     * @return ResponseInterface
-     */
     public function profileAction(ServerRequestInterface $request): ResponseInterface
     {
-        /** @var User $user */
         $user = $request->getAttribute('user');
         $person = $user->getPerson();
         $country = $person->getCountry();
@@ -101,20 +89,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return new JsonResponse($user);
     }
 
-    /**
-     * User image.
-     * @OA\Get(
-     *     path="/api/user/image",
-     *     @OA\Response(response="200", description="User profile image"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"basic"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws Exception
-     */
     public function imageAction(ServerRequestInterface $request): ResponseInterface
     {
         $user = $request->getAttribute('user');
@@ -142,20 +116,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return new JsonResponse(['error' => 'not found'],  404);
     }
 
-    /**
-     * User image.
-     * @OA\Get(
-     *     path="/api/user/background-image",
-     *     @OA\Response(response="200", description="User profilebackground image"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"basic"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws Exception
-     */
     public function backgroundImage(ServerRequestInterface $request): ResponseInterface
     {
         $user = $request->getAttribute('user');
@@ -164,19 +124,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return $this->serveImage($file);
     }
 
-    /**
-     * Upload user image.
-     * @OA\Post(
-     *     path="/api/user/image",
-     *     @OA\Response(response="200", description="User profile image upload result"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"basic"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     */
     public function uploadImage(ServerRequestInterface $request): ResponseInterface
     {
         $data = $request->getParsedBody();
@@ -240,19 +187,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         ], 400);
     }
 
-    /**
-     * Upload user profile background image.
-     * @OA\Post(
-     *     path="/api/user/background-image",
-     *     @OA\Response(response="200", description="User profile background upoload result"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"basic"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     */
     public function uploadBackgroundImage(ServerRequestInterface $request): ResponseInterface
     {
         $data = $request->getParsedBody();
@@ -329,10 +263,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return $filenameOnDisk;
     }
 
-    /**
-     * @param string $path
-     * @return string
-     */
     private function getMimeType(string $path): string
     {
         $finfo = \finfo_open(FILEINFO_MIME); // return mime type
@@ -342,11 +272,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return $mimeType;
     }
 
-    /**
-     * @param string $path
-     * @return string
-     * @throws Exception
-     */
     private function getFilePath(string $path): string
     {
         $path = $this->uploadsDirectory . $path;
@@ -354,40 +279,11 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return $path;
     }
 
-
-    /**
-     * Register a new user.
-     * @OA\Post(
-     *     path="/api/user/register",
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 required={"email", "password", "confirm"},
-     *                 @OA\Property(
-     *                     property="email",
-     *                     type="string",
-     *                     example="fake@email.com",
-     *                     description="The new user's email"
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Email sent"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"register"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @param array $args
-     * @return ResponseInterface
-     * @throws Exception
-     */
     public function registerAction(ServerRequestInterface $request): ResponseInterface
     {
         $form = new Form('register', $this->getTranslator());
         $email = new EmailAddress('email');
+        $email->setRequired(true);
         $form->addField($email);
         $responseData = [];
         $formData = $request->getParsedBody();
@@ -415,55 +311,18 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
                     'address' => $this->getSiteConfig()->getAddress(),
                 ]);
                 $this->mailService->sendEmail($mail);
-
-                $responseData['success'] = 'Email sent to ' . $email;
-                $status = 200;
+                $response = new CreatedResponse('Email sent to ' . $email);
 
             } catch (UserException $e) {
-                $responseData['error'] = $e->getMessage();
-                $responseData['code'] = $e->getCode();
-                $status = $e->getCode();
+                $response = new ErrorResponse($e->getMessage(), $e->getCode());
             }
         } else {
-            $responseData['error'] = $form->getErrorMessages();
-            $responseData['code'] = 400;
-            $status = 400;
+            $response = new ValidationErrorResponse($form->getErrorMessages());
         }
 
-        return new JsonResponse($responseData, $status);
+        return $response;
     }
 
-    /**
-     * Validates an email token.
-     * @OA\Post(
-     *     path="/api/user/validate-email-token",
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 required={"email", "token"},
-     *                 @OA\Property(
-     *                     property="email",
-     *                     type="string",
-     *                     example="fake@email.com",
-     *                     description="The email of the user."
-     *                 ), @OA\Property(
-     *                     property="token",
-     *                     type="string",
-     *                     example="xxxxxxxxxx",
-     *                     description="The security token from the email."
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="{ok: true}}"),
-     *     tags={"user"}
-     * )
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     */
     public function validateEmailToken(ServerRequestInterface $request): ResponseInterface
     {
         $body = $request->getParsedBody();
@@ -473,56 +332,12 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         try {
             $this->userService->findEmailLink($email, $token);
 
-            return new JsonResponse(['ok' => true]);
+            return new OkResponse(['ok' => true]);
         } catch (EmailLinkException $e) {
-            return new JsonResponse(['error' => $e->getMessage()]);
+            return new JsonResponse(['status_code' => $e->getCode(), 'reason_phrase' => $e->getMessage()], $e->getCode());
         }
     }
 
-    /**
-     * Activate a new user.
-     * @OA\Post(
-     *     path="/api/user/activate",
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 required={"email", "token"},
-     *                 @OA\Property(
-     *                     property="email",
-     *                     type="string",
-     *                     example="fake@email.com",
-     *                     description="The account to activate"
-     *                 ), @OA\Property(
-     *                     property="token",
-     *                     type="string",
-     *                     example="xxxxxxxxxx",
-     *                     description="The security token from the email"
-     *                 ), @OA\Property(
-     *                     property="clientId",
-     *                     type="string",
-     *                     example="xxxxxxxxxx",
-     *                     description="The clientId of the app"
-     *                 ), @OA\Property(
-     *                     property="password",
-     *                     type="string",
-     *                     example="xxxxxxxxxx",
-     *                     description="The new users password"
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Email sent"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"register"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     */
     public function activateAction(ServerRequestInterface $request): ResponseInterface
     {
         $body = $request->getParsedBody();
@@ -534,9 +349,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $client = $this->getEntityManager()->getRepository(Client::class)->getClientEntity($clientId);
 
         if (!$client) {
-            return new JsonResponse([
-                'error' => 'Client not found'
-            ], 404);
+            return new NotFoundResponse('Client not found');
         }
 
         try {
@@ -561,13 +374,10 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
             return $response;
 
         } catch (EmailLinkException $e) {
-            $body = ['error' => $e->getMessage()];
-            $status = 400;
+            return new BadRequestResponse($e->getMessage());
         } catch (Exception $e) {
-            return new JsonResponse(['error' => $e->getMessage()]);
+            return new ServerErrorResponse($e->getMessage());
         }
-
-        return new JsonResponse($body, $status);
     }
 
     private function getAuthRequest(string $clientId): ServerRequestInterface
@@ -615,31 +425,6 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         return rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
     }
 
-    /**
-     * Resend an activation email.
-     * @OA\Post(
-     *     path="/api/user/resend-activation-email",
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 required={"email", "token"},
-     *                 @OA\Property(
-     *                     property="email",
-     *                     type="string",
-     *                     example="fake@email.com",
-     *                     description="The account to resend the email to"
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="{ok: true}"),
-     *     tags={"user"},
-     * )
-     * @param ServerRequestInterface $request
-     * @param array $args
-     * @return ResponseInterface
-     */
     public function resendActivationEmailAction(ServerRequestInterface $request): ResponseInterface
     {
         $email = $request->getParsedBody()['email'];
@@ -647,11 +432,11 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $translator = $this->getTranslator();
 
         if (!$user) {
-            throw new Exception(UserException::USER_NOT_FOUND, 404);
+            return new NotFoundResponse(UserException::USER_NOT_FOUND);
         }
 
         if ($user->getState()->getValue() == State::STATE_ACTIVATED) {
-            throw new Exception(UserException::USER_ACTIVATED, 400);
+            return new BadRequestResponse(UserException::USER_ACTIVATED);
         }
 
         $link = $this->userService->generateEmailLink($user);
@@ -673,7 +458,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         ]);
         $this->mailService->sendEmail($mail);
 
-        return new JsonResponse([
+        return new CreatedResponse([
             'ok' => true
         ]);
     }

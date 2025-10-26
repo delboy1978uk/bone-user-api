@@ -7,23 +7,36 @@ using TypeSpec.Rest;
 
 namespace Application;
 
-@tag("Users")
-@route("/users")
+@tag("User")
+@route("/user")
 interface UserOps {
-  @get
-  op index(@query page?: int32): IndexResponse<User>;
-
+  @route("/register")
+  @doc("Register a new unactivated user onto the system")
   @post
-  op create(@body UserBody: User): CreatedResponse<User>;
+  op register(@body body: Email): CreatedApiResponse;
 
-  @route("{id}")
+  @route("/validate-email-token ")
+  @doc("Validate the token from the user's activation email.")
+  @post
+    op validateEmailToken(@body body: ActivateAccount): OkApiResponse;
 
-  @get
-  op get(@path id: int32): RecordResponse<User>;
+  @route("/resend-activation-email")
+  @doc("Resend the user activation email.")
+  @post
+    op resendActivationMail(@body body: Email): CreatedApiResponse;
 
-  @patch(#{implicitOptionality: false})
-  op update(@path id: int32, @body UserBody: User): UpdatedResponse<User>;
+  @route("/activate")
+    @doc("Activate the user account.")
+    @post
+      op activate(@body body: ActivateAccount): SuccessResponse<TokenResponse>;
 
-  @delete
-  op delete(@path id: int32): DeletedResponse;
+  @route("/image")
+    @doc("Upload the user's profile pic")
+    @post
+      op upload(@body body: {
+        todo: string,
+      }): OkApiResponse;
+    @doc("Download the user's profile pic")
+    @get
+      op serveImage(): OkApiResponse;
 }

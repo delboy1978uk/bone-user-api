@@ -17,6 +17,8 @@ use Bone\OAuth2\Http\Middleware\ScopeCheck;
 use Bone\Router\Router;
 use Bone\Router\RouterConfigInterface;
 use Bone\BoneUserApi\Controller\ApiController;
+use Bone\User\Http\Controller\Api\PersonApiController;
+use Bone\User\Http\Controller\Api\UserApiController;
 use Bone\User\Http\Middleware\SessionAuth;
 use Del\Service\UserService;
 use Laminas\Diactoros\ResponseFactory;
@@ -25,8 +27,15 @@ use League\Route\Strategy\JsonStrategy;
 
 class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface, ApiDocProviderInterface
 {
+    private bool $restApi = false;
+
     public function addToContainer(Container $c): void
     {
+        if ($c->has('bone-user')) {
+            $config = $c->get('bone-user');
+            $api = $this->restApi ?? false;
+        }
+
         $c[ApiController::class] = $c->factory(function (Container $c) {
             /** @var UserService $userService */
             $userService = $c->get(UserService::class);
@@ -47,7 +56,6 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
         $basicScopeCheck = new ScopeCheck(['basic']);
 
         $router->group('/api', function (RouteGroup $route) use ($c, $tokenAuth, $basicScopeCheck) {
-            $route->map('GET', '/user', [ApiController::class, 'indexAction']);
             $route->map('POST', '/user/register', [ApiController::class, 'registerAction'])->middleware(new JsonParse());
             $route->map('POST', '/user/resend-activation-email', [ApiController::class, 'resendActivationEmailAction'])->middleware(new JsonParse());
             $route->map('POST', '/user/validate-email-token', [ApiController::class, 'validateEmailToken'])->middleware(new JsonParse());
@@ -67,6 +75,11 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
         })
             ->setStrategy($strategy);
 
+        if ($this->restApi === true) {
+            $router->apiResource('people', PersonApiController::class, $c);
+            $router->apiResource('users', UserApiController::class, $c);
+        }
+
         return $router;
     }
 
@@ -80,18 +93,26 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
     public function providePayloads(): array
     {
-        return [];
+        return [
+            '../../vendor/delboy1978uk/bone-user-api/data/payloads/email.tsp',
+            '../../vendor/delboy1978uk/bone-user-api/data/payloads/activate.tsp',
+        ];
     }
 
     public function provideResponses(): array
     {
-        return [];
+        return [
+            '../../vendor/delboy1978uk/bone-user-api/data/responses/token_response.tsp',
+        ];
     }
 
     public function provideRoutes(): array
     {
-        return [
+        return $this->restApi ? [
             '../vendor/delboy1978uk/bone-user-api/data/routes/person.tsp',
+            '../vendor/delboy1978uk/bone-user-api/data/routes/user_rest.tsp',
+            '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',
+        ] : [
             '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',
         ];
     }

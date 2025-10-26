@@ -1,0 +1,3 @@
+model Email {
+    emaiil: string;
+}
