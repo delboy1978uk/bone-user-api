@@ -1,3 +1,3 @@
 model Email {
-    emaiil: string;
+    email: string;
 }

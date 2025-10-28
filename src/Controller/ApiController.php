@@ -78,7 +78,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         $country = $person->getCountry();
         $user = $this->userService->toArray($user);
         $dob = $person->getDob() ? $person->getDob()->format('Y-m-d') : null;
-        $person = $this->userService->getPersonSvc()->toArray($person);
+        $person = $this->userService->getPersonService()->toArray($person);
         $person['dob'] = $dob;
         $person['country'] = $country ? $country->toArray() : null;
         $person['image'] = $person['image'] ? $this->baseUrl . '/api/user/image' : null;
@@ -166,7 +166,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
                 $user = $request->getAttribute('user');
                 $person = $user->getPerson();
                 $person->setImage($newFileName);
-                $this->userService->getPersonSvc()->savePerson($person);
+                $this->userService->getPersonService()->savePerson($person);
 
                 return new JsonResponse([
                     'result' => 'success',
@@ -223,7 +223,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
                 $user = $request->getAttribute('user');
                 $person = $user->getPerson();
                 $person->setBackgroundImage($newFileName);
-                $this->userService->getPersonSvc()->savePerson($person);
+                $this->userService->getPersonService()->savePerson($person);
 
                 return new JsonResponse([
                     'result' => 'success',
@@ -539,9 +539,9 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
             $user = $request->getAttribute('user');
             $person = $user->getPerson();
             $data['image'] = $person->getImage();
-            $personService = $this->userService->getPersonSvc();
+            $personService = $this->userService->getPersonService();
             $person = $personService->populateFromArray($person, $data);
-            $this->userService->getPersonSvc()->savePerson($person);
+            $this->userService->getPersonService()->savePerson($person);
             $person = $personService->toArray($person);
             $person['country'] = $person['country']->toArray();
             $person['dob'] = $person['dob']->format('Y-m-d');

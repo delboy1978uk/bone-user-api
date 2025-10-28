@@ -15,20 +15,25 @@ interface UserOps {
   @post
   op register(@body body: Email): CreatedApiResponse;
 
-  @route("/validate-email-token ")
-  @doc("Validate the token from the user's activation email.")
-  @post
-    op validateEmailToken(@body body: ActivateAccount): OkApiResponse;
-
   @route("/resend-activation-email")
   @doc("Resend the user activation email.")
   @post
     op resendActivationMail(@body body: Email): CreatedApiResponse;
 
+  @route("/validate-email-token ")
+  @doc("Validate the token from the user's activation email.")
+  @post
+    op validateEmailToken(@body body: ActivateAccount): OkApiResponse;
+
   @route("/activate")
     @doc("Activate the user account.")
     @post
       op activate(@body body: ActivateAccount): SuccessResponse<TokenResponse>;
+
+  @route("/profile")
+    @doc("User profile details")
+    @get
+      op getProfile(): OkApiResponse;
 
   @route("/image")
     @doc("Upload the user's profile pic")
@@ -36,6 +41,8 @@ interface UserOps {
       op upload(@body body: {
         todo: string,
       }): OkApiResponse;
+
+  @route("/image")
     @doc("Download the user's profile pic")
     @get
       op serveImage(): OkApiResponse;
