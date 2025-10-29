@@ -168,23 +168,23 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
                 $person->setImage($newFileName);
                 $this->userService->getPersonService()->savePerson($person);
 
-                return new JsonResponse([
+                return new CreatedResponse([
                     'result' => 'success',
                     'message' => 'Avatar now set to ' . $person->getImage(),
                     'avatar' => $person->getImage(),
                 ]);
             } catch (Exception $e) {
-                return new JsonResponse([
+                return new ErrorResponse([
                     'result' => 'danger',
                     'message' => $e->getMessage(),
-                ], 200);
+                ]);
             }
         }
 
-        return new JsonResponse([
+        return new ErrorResponse([
             'result' => 'danger',
             'message' => 'There was a problem with your upload.',
-        ], 400);
+        ]);
     }
 
     public function uploadBackgroundImage(ServerRequestInterface $request): ResponseInterface
@@ -463,69 +463,7 @@ class ApiController extends Controller implements EntityManagerAwareInterface, S
         ]);
     }
 
-    /**
-     * Update user profile data.
-     * @OA\Put(
-     *     path="/api/user/profile",
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 required={"email", "password", "confirm"},
-     *                 @OA\Property(
-     *                     property="firstname",
-     *                     type="string",
-     *                     example="Captain",
-     *                     description="The user's firstname"
-     *                 ),@OA\Property(
-     *                     property="middlename",
-     *                     type="string",
-     *                     example="Jack",
-     *                     description="The users middlename"
-     *                 ),@OA\Property(
-     *                     property="lastname",
-     *                     type="string",
-     *                     example="Sparrow",
-     *                     description="The user's surname"
-     *                 ),
-     *                  @OA\Property(
-     *                     property="aka",
-     *                     type="string",
-     *                     example="outlaw pirate",
-     *                     description="The user's nickname"
-     *                 ),
-     *                  @OA\Property(
-     *                     property="dob",
-     *                     type="date",
-     *                     example="2014-09-18",
-     *                     description="The user's date of birth"
-     *                 ),
-     *                  @OA\Property(
-     *                     property="birthplace",
-     *                     type="string",
-     *                     example="Jamaica",
-     *                     description="The user's birthplace"
-     *                 ),
-     *                  @OA\Property(
-     *                     property="country",
-     *                     type="string",
-     *                     example="JM",
-     *                     description="The user's country"
-     *                 ),
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Success message"),
-     *     tags={"user"},
-     *     security={
-     *         {"oauth2": {"basic"}}
-     *     }
-     * )
-     * @param ServerRequestInterface $request
-     * @param array $args
-     * @return ResponseInterface
-     * @throws Exception
-     */
+
     public function editProfileAction(ServerRequestInterface $request): ResponseInterface
     {
         $data = $request->getParsedBody();
