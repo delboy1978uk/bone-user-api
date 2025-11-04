@@ -125,7 +125,7 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
             'Bone\Paseto\PasetoPackage',
             'Del\Person\PersonPackage',
             'Del\UserPackage',
-            'Del\PassportPackage',
+            'Del\Passport\PassportPackage',
             'Bone\Passport\PassportPackage',
             'Bone\User\BoneUserPackage',
             'Bone\OAuth2\BoneOAuth2Package',
