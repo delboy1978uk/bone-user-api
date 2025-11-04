@@ -130,8 +130,6 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
             'Bone\User\BoneUserPackage',
             'Bone\OAuth2\BoneOAuth2Package',
             'Bone\OpenApi\OpenApiPackage',
-            'Del\Passport\PassportPackage',
-            'Bone\Passport\PassportPackage',
             self::class,
         ];
     }
