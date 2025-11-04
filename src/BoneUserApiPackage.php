@@ -7,6 +7,7 @@ namespace Bone\BoneUserApi;
 use Barnacle\Container;
 use Barnacle\RegistrationInterface;
 use Bone\Contracts\Container\ApiDocProviderInterface;
+use Bone\Contracts\Container\DependentPackagesProviderInterface;
 use Bone\Controller\Init;
 use Bone\Http\Middleware\HalEntity;
 use Bone\Http\Middleware\JsonParse;
@@ -19,13 +20,12 @@ use Bone\Router\RouterConfigInterface;
 use Bone\BoneUserApi\Controller\ApiController;
 use Bone\User\Http\Controller\Api\PersonApiController;
 use Bone\User\Http\Controller\Api\UserApiController;
-use Bone\User\Http\Middleware\SessionAuth;
 use Del\Service\UserService;
 use Laminas\Diactoros\ResponseFactory;
 use League\Route\RouteGroup;
 use League\Route\Strategy\JsonStrategy;
 
-class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface, ApiDocProviderInterface
+class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface, ApiDocProviderInterface, DependentPackagesProviderInterface
 {
     private bool $restApi = false;
 
@@ -33,7 +33,7 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
     {
         if ($c->has('bone-user')) {
             $config = $c->get('bone-user');
-            $api = $this->restApi ?? false;
+            $this->restApi = $config['api'] ?? false;
         }
 
         $c[ApiController::class] = $c->factory(function (Container $c) {
@@ -114,6 +114,25 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
             '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',
         ] : [
             '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',
+        ];
+    }
+
+    public function getRequiredPackages(): array
+    {
+        return [
+            'Bone\Mail\MailPackage',
+            'Bone\BoneDoctrine\BoneDoctrinePackage',
+            'Bone\Paseto\PasetoPackage',
+            'Del\Person\PersonPackage',
+            'Del\UserPackage',
+            'Del\PassportPackage',
+            'Bone\Passport\PassportPackage',
+            'Bone\User\BoneUserPackage',
+            'Bone\OAuth2\BoneOAuth2Package',
+            'Bone\OpenApi\OpenApiPackage',
+            'Del\Passport\PassportPackage',
+            'Bone\Passport\PassportPackage',
+            self::class,
         ];
     }
 }
