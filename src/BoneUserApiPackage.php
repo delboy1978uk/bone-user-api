@@ -6,6 +6,7 @@ namespace Bone\BoneUserApi;
 
 use Barnacle\Container;
 use Barnacle\RegistrationInterface;
+use Bone\Application;
 use Bone\Contracts\Container\ApiDocProviderInterface;
 use Bone\Contracts\Container\DependentPackagesProviderInterface;
 use Bone\Controller\Init;
@@ -108,7 +109,14 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
     public function provideRoutes(): array
     {
-        return $this->restApi ? [
+        $c = Application::ahoy()->getContainer();
+
+        if ($c->has('bone-user')) {
+            $config = $c->get('bone-user');
+            $api = $config['api'] ?? false;
+        }
+
+        return $api ? [
             '../vendor/delboy1978uk/bone-user-api/data/routes/person.tsp',
             '../vendor/delboy1978uk/bone-user-api/data/routes/user_rest.tsp',
             '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',

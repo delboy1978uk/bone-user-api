@@ -7,9 +7,9 @@ using TypeSpec.Rest;
 
 namespace Application;
 
-@tag("User REST")
+@tag("User")
 @route("/users")
-interface UserOps {
+interface UserRestOps {
   @get
   op index(@query page?: int32): IndexResponse<User>;
 
