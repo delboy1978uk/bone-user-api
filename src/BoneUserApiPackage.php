@@ -78,7 +78,6 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
         if ($this->restApi === true) {
             $router->apiResource('people', PersonApiController::class, $c);
-            $router->apiResource('users', UserApiController::class, $c);
         }
 
         return $router;
@@ -118,7 +117,6 @@ class BoneUserApiPackage implements RegistrationInterface, RouterConfigInterface
 
         return $api ? [
             '../vendor/delboy1978uk/bone-user-api/data/routes/person.tsp',
-            '../vendor/delboy1978uk/bone-user-api/data/routes/user_rest.tsp',
             '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',
         ] : [
             '../vendor/delboy1978uk/bone-user-api/data/routes/user.tsp',
